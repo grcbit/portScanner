@@ -1,0 +1,256 @@
+{{extend 'layout.html'}}
+
+<br><strong>{{=T('HOST SCAN')}}</strong>
+
+<!-- Datatable -->
+<script type="text/javascript" language="javascript" src="{{=URL('static','dataTable15/media/js/jquery.dataTables.min.js')}}"></script>
+<link rel="stylesheet" type="text/css" href="{{=URL('static','dataTable15/media/css/jquery.dataTables.min.css')}}">
+<!-- Chart -->
+<script type="text/javascript" language="javascript" src="{{=URL('static','c3-master/c3.js')}}"></script>
+<script type="text/javascript" language="javascript" src="{{=URL('static','c3-master/d3.v3.min.js')}}"></script>
+<link rel="stylesheet" type="text/css" href="{{=URL('static','c3-master/c3.css')}}">
+<!-- Styles -->
+<style> th { font-size: 12px; } td { font-size: 10px; } </style>
+
+{{if request.vars['msg']:}}
+  <div class="alert alert-warning"> <strong>{{=request.vars['msg']}}</strong> </div>
+{{pass}}
+
+{{portsCount = 0}}
+{{for i in scanPorts:}}
+  {{portsCount = portsCount + 1}}
+{{pass}}
+{{hostsCount = 0}}
+{{for i in scanHosts:}}
+  {{hostsCount = hostsCount + 1}}
+{{pass}}
+
+{{rotate = 'H'}}
+{{if request.get_vars.rotate=='V':}}
+    {{rotate = 'V'}}
+{{pass}}
+{{if request.get_vars.rotate=='H':}}
+    {{rotate = 'H'}}
+{{pass}}
+
+<h6>
+  {{=form}}
+
+  <br>
+    <button id="btnExport" type="button" onclick="ExportToExcel();"><i class="glyphicon glyphicon-download-alt"></i></button>
+  <br>
+
+  <table id="example" align="left" class="display" width="100%" cellspacing="0">
+  <thead>
+    <tr>
+      <td>{{=T('Host')}}</td>    
+      <td>{{=T('Network')}}</td>    
+      <td>{{=T('Protocol')}}</td>    
+      <td>{{=T('Port')}}</td>    
+      <td>{{=T('Protocol Product')}}</td>    
+      <td>{{=T('Protocol State')}}</td>    
+      <td>{{=T('Protocol Version')}}</td>    
+      <td>{{=T('Protocol Name')}}</td>    
+      <td>{{=T('Protocol Conf')}}</td>    
+      <td>{{=T('Protocol Extrainfo')}}</td>    
+      <td>{{=T('Protocol Reason')}}</td>    
+      <td>{{=T('Protocol cpe')}}</td>    
+      <td>{{=T('Status State')}}</td>    
+      <td>{{=T('Status Reason')}}</td>    
+      <td>{{=T('Hostnames')}}</td>    
+      <td>{{=T('Vendor')}}</td>    
+      <td>{{=T('Addresses')}}</td>    
+      <td>{{=T('OS Match')}}</td>    
+    </tr>
+  </thead>
+  <tbody>
+    {{for i in rScan2:}}
+      <tr>
+        <td>{{=i.nmapConfigId.scanHostName}}</td>    
+        <td>{{=i.nmapConfigId.scanHostNetwork}}</td>    
+        <td>{{=i.protocol}}</td>    
+        <td>{{=i.port}}</td>    
+        <td>{{=i.product}}</td>    
+        <td>{{=i.protocolState}}</td>    
+        <td>{{=i.protocolVersion}}</td>    
+        <td>{{=i.name}}</td>    
+        <td>{{=i.conf}}</td>    
+        <td>{{=i.extrainfo}}</td>    
+        <td>{{=i.reason}}</td>    
+        <td>{{=i.cpe}}</td>    
+        <td>{{=i.statusState}}</td>    
+        <td>{{=i.statusReason}}</td>    
+        <td>{{=i.hostnames}}</td>    
+        <td>{{=i.vendor}}</td>    
+        <td>{{=i.addresses}}</td>    
+        <td>{{=i.osMatch}}</td>    
+      </tr>
+    {{pass}}
+  </tbody>
+  </table>
+
+  <br>
+</h6>
+
+<div class="row">
+  <div class="col-md-12 col-lg-12 col-sm-12 col-xs-12">
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <p align="center">{{=hostsCount}} {{=T('Hosts Up')}}</p>
+        <div id="hosts" align="center" style="width: 100%; height: 100%;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12 col-lg-12 col-sm-12 col-xs-12">
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <p align="center">{{=portsCount}} {{=T('Ports Open')}}</p>
+        <div id="ports" align="center" style="width: 100%; height: 100%;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<br>
+
+<script type="text/javascript">
+  //Numero de puertos
+  var ports = c3.generate({
+    bindto: '#ports',
+    color: {
+      pattern: ['#ff7f0e']
+    },
+    size: {
+      height: 350,
+      width: 900,
+    },
+    data: {
+      x: 'x',
+      columns: [
+        ['x', {{for i in scanPorts:}}  '{{=i.nmapResults.port}}',        {{pass}} ],
+        ['# {{=T('Hosts')}}', {{for i in scanPorts:}}   {{=int(i._extra.values()[0])}},  {{pass}} ],
+      ],
+      type: 'bar',
+      onclick: function (d, element) { console.log("onclick", d, element); },
+      onmouseover: function (d) { console.log("onmouseover", d); },
+      onmouseout: function (d) { console.log("onmouseout", d); }
+    },
+
+    axis: {
+      {{if request.get_vars.rotate == 'V':}}
+        rotated: true,
+        {{pass}}
+          x: {
+            type: 'category',
+            tick: {
+              rotate: 90,
+              fit: true,
+              multiline: false
+            }
+          },
+         
+          y: {
+            tick: {
+              {{rango = [1]}}
+              {{for i in scanPorts:}}
+                    {{rango.append(int(i._extra.values()[0]))}}
+              {{pass}}
+              {{set(rango)}}
+              values: [{{for i in range(1,max(rango)+2):}} {{if i%5==0:}} {{=i}},{{pass}} {{pass}}]
+            }
+          },
+
+        },
+        bar: {
+          width: {
+            ratio: 0.5,
+            //max: 30
+          },
+        }
+  });
+
+  //Numero de puertos por host
+  var hosts = c3.generate({
+    bindto: '#hosts',
+    size: {
+      height: 350,
+      width: 900,
+    },
+    data: {
+      x: 'x',
+      columns: [
+        ['x', {{for i in scanHosts:}}  '{{=i.nmapResults.nmapConfigId.scanHostName}}',        {{pass}} ],
+        ['# {{=T('Ports')}}', {{for i in scanHosts:}}   {{=int(i._extra.values()[0])}},  {{pass}} ],
+      ],
+      type: 'bar',
+      onclick: function (d, element) { console.log("onclick", d, element); },
+      onmouseover: function (d) { console.log("onmouseover", d); },
+      onmouseout: function (d) { console.log("onmouseout", d); }
+    },
+    axis: {
+      {{if request.get_vars.rotate == 'V':}}
+        rotated: true,
+      {{pass}}
+      x: {
+        type: 'category',
+        tick: {
+          rotate: 90,
+          fit: true,
+          multiline: false
+        }
+      },
+      y: {
+        tick: {
+          {{rango = [1]}}
+          {{for i in scanHosts:}}
+            {{rango.append(i._extra.values()[0])}}
+          {{pass}}
+          {{set(rango)}}
+          values: [{{for i in range(1,max(rango)+2):}} {{if i%5==0:}} {{=i}}, {{pass}} {{pass}}]
+        }
+      },
+
+    },
+    bar: {
+      width: {
+        ratio: 0.5,
+        //max: 30
+      },
+    }
+  });
+
+  function ExportToExcel(mytblId){
+    var htmltable= document.getElementById('example');
+    var html = htmltable.outerHTML;
+    while (html.indexOf('á') != -1) html = html.replace('á', '&aacute;');
+    while (html.indexOf('Á') != -1) html = html.replace('Á', '&Aacute;');
+    while (html.indexOf('é') != -1) html = html.replace('é', '&eacute;');
+    while (html.indexOf('É') != -1) html = html.replace('É', '&Eacute;');
+    while (html.indexOf('í') != -1) html = html.replace('í', '&iacute;');
+    while (html.indexOf('Í') != -1) html = html.replace('Í', '&Iacute;');
+    while (html.indexOf('ó') != -1) html = html.replace('ó', '&oacute;');
+    while (html.indexOf('Ó') != -1) html = html.replace('Ó', '&Oacute;');
+    while (html.indexOf('ú') != -1) html = html.replace('ú', '&uacute;');
+    while (html.indexOf('Ú') != -1) html = html.replace('Ú', '&Uacute;');
+    while (html.indexOf('º') != -1) html = html.replace('º', '&ordm;');
+    while (html.indexOf('ñ') != -1) html = html.replace('ñ', '&ntilde;'); 
+    while (html.indexOf('Ñ') != -1) html = html.replace('Ñ', '&Ntilde;'); 
+    while (html.indexOf('ó') != -1) html = html.replace('Ã³', '&oacute;'); 
+    window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+    //window.open('data:application/vnd.ms-excel,' + escape(html));
+  }
+
+$(document).ready(function() {
+  $('#example').DataTable({
+    "scrollY": "300px",
+    "scrollX": true,
+    "paging":         true,
+    "bDestroy": true,
+    "deferRender":    true,
+    "scrollCollapse": true,
+  });
+});
+</script>
